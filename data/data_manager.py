@@ -1,12 +1,12 @@
 from PyQt5.QtCore import QFile, QIODevice
 from PyQt5.QtGui import QPixmap
-from image.dicom_series import DicomSeries
+from data.dicom_series import DicomSeries
 from image.dicom_image import DicomImage
 from PyQt5.QtWidgets import QProgressBar
-import os, time, random, re, csv, threading, pathlib
-import numpy as np
-from matplotlib import pyplot as plt
+import os, time, random, re, threading, pathlib
+from matplotlib import pyplot
 from typing import Tuple
+import numpy as np
 
 
 class ExportWriter(object):
@@ -26,11 +26,12 @@ class ExportWriter(object):
 					f.open(QIODevice.WriteOnly)
 					i.save(f, "PNG")
 				elif type(self.data) == np.ndarray:
-					plt.imsave(self.path, i)
+					pyplot.imsave(self.path, i)
 		except ValueError as ve:
-			return  # Expected sometimes
+			return  # Expected sometimes, cause not fully reviewed
 		except Exception as e:
 			print(e)
+
 
 def getDateString():
 	return time.strftime("%d.%m %H-%M-%S", time.localtime())
@@ -40,7 +41,7 @@ class Datamanager:
 
 	def __init__(self):
 		self.current_series: DicomSeries = None
-		self.base_dir = os.getcwd()
+		self.base_dir: str = os.getcwd()
 		self.current_export_path: str = None
 		self.export_names: dict = {}
 		self.last_segresult: np.ndarray = None
@@ -65,10 +66,11 @@ class Datamanager:
 
 	def getImage(self, number):
 		if number > len(self.current_series):
-			raise ValueError('Requested Image Number not loaded')
+			raise ValueError('Requested image number not loaded')
 		return self.current_series.getImage(number)
 
 	def create_export_folder(self, image_path) -> str:
+		# Creates and returns folder where debug images are going to be stored. One unique per program run
 		parent = os.path.abspath(os.path.join(image_path, os.pardir))
 		series_name = os.path.basename(image_path)
 		new_name = series_name + "-" + getDateString()
@@ -83,6 +85,7 @@ class Datamanager:
 			return None
 
 	def create_series_folder(self):
+		# Creates folder where segmented images are stored upon clicking "export"
 		try:
 			export_dir = os.path.join(self.base_dir, "\\export")
 			if not os.path.isdir(export_dir):
@@ -96,18 +99,21 @@ class Datamanager:
 			print("Error creating debug export Folder")
 			self.current_export_path = None
 
-	def paste_csv(self, input: dict, path="default.txt"):
+	def paste_csv(self, input: dict, path="default.csv"):
+		# Used to save time measurements to an .CSV - Not used in standard mode
 		try:
-			finalpath=pathlib.Path(__file__).parent.parent.absolute().joinpath("measurements\\").joinpath(path)
+			finalpath = pathlib.Path(__file__).parent.parent.absolute().joinpath("measurements\\").joinpath(path)
 			with open(finalpath, 'w') as f:
 				for key in input.keys():
 					f.write("%s;%s\n" % (key, input[key]))
-		except IOError:
-			print("I/O error")
+		except IOError as e:
+			print(e)
+			print("I/O error ")
 
 	def __get_export_fname(self, name, folder=None):
+		# Generating semi-unique filename in the currently used debug image folder
 		if folder is None and self.current_export_path is None:
-			raise Exception("Path Null")
+			raise Exception("Path is not existent")
 		elif folder is None:
 			folder = self.current_export_path
 		if name is None:
@@ -124,10 +130,12 @@ class Datamanager:
 		return path
 
 	def export_np(self, arr: np.ndarray, name: str = None, base_path=None):
+		# Exporting a Numpy Array as an image
 		path = self.__get_export_fname(name, base_path)
 		ExportWriter(arr, path)
 
 	def export_pixmap(self, pix: QPixmap, name: str = None, base_path=None):
+		# Exporting an QPixmap to an image file
 		try:
 			path = self.__get_export_fname(name, base_path)
 			ExportWriter(pix, path)
@@ -136,12 +144,13 @@ class Datamanager:
 			print("Error saving Pixmap")
 
 	def load_series(self, path, pb: QProgressBar = None):
+		# New folder gets scanned, packed into dicom_series object. Loading of data called in dicom_image
 		new_s = DicomSeries(path)
 		print('Path to the DICOM directory: {}'.format(path))
 		image_list: DicomImage = []
 		for r, d, f in os.walk(path):
 			try:
-				f.sort(key = lambda x: int(re.sub(r"\D", "", x)))
+				f.sort(key=lambda x: int(re.sub(r"\D", "", x)))
 			except Exception:
 				print("Sort omitted")
 			for file in f:

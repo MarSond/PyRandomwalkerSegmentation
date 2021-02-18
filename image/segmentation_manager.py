@@ -1,8 +1,8 @@
 from image.dicom_image import DicomImage
-from image.dicom_series import DicomSeries
-import image.randomwalker_self as ran_self
+from data.dicom_series import DicomSeries
+import image.randomwalker_self as randomwalker_self
 import numpy as np
-import image.image_functions as imp
+import data.tools as imp
 from data.data_manager import Datamanager
 from typing import Tuple
 
@@ -16,8 +16,8 @@ def __get_data3D(series: DicomSeries, seg_range: tuple, window: tuple, data: Dat
 
 def randomwalk_range(series: DicomSeries, seg_range: tuple, window: tuple, beta_val: float, data: Datamanager) -> np.ndarray:
 	vol_data, vol_label = __get_data3D(series=series, seg_range=seg_range, window=window, data=data)
-	print("Start segmentation self with wc={} ww={} beta={}".format(window[0], window[1], beta_val))
-	seg = ran_self.random_walker(vol_data, vol_label, copy=False, beta=beta_val)
+	print("Start segmentation with wc={} ww={} beta={}".format(window[0], window[1], beta_val))
+	seg = randomwalker_self.random_walker(vol_data, vol_label, copy=False, beta=beta_val)
 	#data.export_np(seg, "seg-range") if data is not None else None
 	return np.atleast_3d(seg)  # export matrix anyways as 3D to not confuse later on
 
@@ -25,7 +25,7 @@ def randomwalk_range(series: DicomSeries, seg_range: tuple, window: tuple, beta_
 def randomwalk_single(image: DicomImage, window: tuple, beta_val: float, data: Datamanager = None) -> np.ndarray:
 	im_data = imp.arr_hu_to_arr(image.pixels, wc=window[0], ww=window[1])
 	data_normalized = (im_data - np.min(im_data)) / np.ptp(im_data)
-	print("Start segmentation scikit with wc={} ww={} beta={}".format(window[0], window[1], beta_val))
-	seg = ran_self.random_walker(data_normalized, image.label.label_map, copy=False, beta=beta_val)
+	print("Start segmentation with wc={} ww={} beta={}".format(window[0], window[1], beta_val))
+	seg = randomwalker_self.random_walker(data_normalized, image.label.label_map, copy=False, beta=beta_val)
 	data.export_np(seg, "seg-single") if data is not None else None
 	return seg

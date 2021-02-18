@@ -3,12 +3,15 @@ from PyQt5.QtWidgets import QProgressBar
 
 
 class DicomSeries:
-	def getImage(self, number: int): # starts at 1
+	# Wraps an array of dicom_images for easier handling. Forwards loading function to each individual image
+
+	def getImage(self, number: int):  # Image numbering starts at 1
 		if number > len(self.images):
-			raise ValueError("Selection too high in Series Image selection")
+			raise ValueError("Requested image number is not present in series")
 		return self.images[number - 1]
 
 	def load_all(self, pb: QProgressBar = None):
+		# Loop over all images and let them load the content themselves while updating ProgressBar
 		if pb is not None:
 			pb.setMinimum(0)
 			pb.setValue(0)
@@ -21,7 +24,6 @@ class DicomSeries:
 	def __len__(self):
 		return len(self.images)
 
-	def __init__(self, path):
-		self.path = path
-		print('Series Init')
+	def __init__(self, path: str):
+		self.path: str = path
 		self.images: [dicom_image] = None

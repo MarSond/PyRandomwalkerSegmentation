@@ -52,7 +52,7 @@
    <widget class="QCommandLinkButton" name="clb_load">
     <property name="geometry">
      <rect>
-      <x>20</x>
+      <x>30</x>
       <y>100</y>
       <width>131</width>
       <height>41</height>
@@ -91,7 +91,7 @@
      <string>Search folder</string>
     </property>
    </widget>
-   <widget class="ImageLabelWidget" name="gv_raw_image">
+   <widget class="ImageLabelWidget" name="lb_preview_image">
     <property name="geometry">
      <rect>
       <x>30</x>
@@ -460,6 +460,9 @@ chosen sidelengths</string>
      <property name="maximum">
       <number>2</number>
      </property>
+     <property name="tracking">
+      <bool>true</bool>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -470,7 +473,7 @@ chosen sidelengths</string>
       <enum>QSlider::TicksBelow</enum>
      </property>
      <property name="tickInterval">
-      <number>1</number>
+      <number>5</number>
      </property>
     </widget>
     <widget class="QSpinBox" name="sb_wc">
@@ -680,7 +683,7 @@ chosen sidelengths</string>
       <number>1</number>
      </property>
      <property name="value">
-      <number>500</number>
+      <number>1000</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -702,10 +705,10 @@ chosen sidelengths</string>
       </rect>
      </property>
      <property name="maximum">
-      <number>3000</number>
+      <number>4000</number>
      </property>
      <property name="value">
-      <number>500</number>
+      <number>1000</number>
      </property>
     </widget>
     <widget class="QLabel" name="label_6">
@@ -861,6 +864,9 @@ chosen sidelengths</string>
      <property name="maximum">
       <number>100</number>
      </property>
+     <property name="singleStep">
+      <number>10</number>
+     </property>
      <property name="value">
       <number>80</number>
      </property>
@@ -877,14 +883,14 @@ chosen sidelengths</string>
     <widget class="QLabel" name="lb545">
      <property name="geometry">
       <rect>
-       <x>400</x>
+       <x>460</x>
        <y>70</y>
-       <width>41</width>
+       <width>31</width>
        <height>21</height>
       </rect>
      </property>
      <property name="text">
-      <string> Image</string>
+      <string>Image</string>
      </property>
     </widget>
     <widget class="QSlider" name="sl_res_image">
@@ -934,7 +940,7 @@ chosen sidelengths</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>440</x>
+       <x>400</x>
        <y>70</y>
        <width>51</width>
        <height>22</height>

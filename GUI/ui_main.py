@@ -1,53 +1,75 @@
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from data.data_manager import Datamanager
-import image.segmentation as segment
+import image.segmentation_manager as segment
 from image.dicom_image import DicomImage
 from data.image_label import ImageLabel
 import numpy as np
 from os.path import isdir
-from timer import Timer
+from data.tools import Timer
 import gc
 
 
 class UI_MainWindow(QtWidgets.QMainWindow):
+	'''
+	UI Class that handles most of the user interaction.
+	Responsible for loading and reacting to inputs. Calls data_manager and segmentation for loading and exporting
+
+	Abbreviations:
+	--------------
+	sl  -> Slider UI Element
+	pb  -> PushButton is a normal onclick button
+	clb -> CommandLinkButton (works as normal button)
+	lb  -> Label (Used for displaying text but most importantly as well to show images)
+	sb  -> SpinBox is used to select integer values comfortably
+	sl  -> Slider to select a value
+	gb  -> GroupBox will group some UI Elements. Only relevant in code to handle enabled/disabled state.
+	le  -> LineEdit is used to enter text. Here used to display and change the path to a folder
+	cb  -> CheckBox (On/Off)
+
+	_preview        -> Element is in the area where image is previewed and painted on.
+	_segmentation   -> Element is in the Area for segmentation settings and result viewing.
+	_paint_         -> Image label for representation of each label class independently
+
+	WW -> Houndsfield Units WindowWidth
+	WC -> Houndsfield Units WindowCenter
+	'''
 
 	def update_preview_labeltext(self):
 		sel_im = self.sl_raw_image.value()
 		all_im = len(self.dataman.current_series)
-		self.lb_preview.setText("Image {sel}/{all} selected. WC={wc} WW={ww}".format(
-			sel=sel_im, all=all_im, ww=self.sl_ww.value(), wc=self.sl_wc.value()))
+		self.lb_preview.setText(f"Image {sel_im}/{all_im} selected. WC={self.hu_window[0]} WW={self.hu_window[1]}")
 
 	def update_labelview(self):
 		selected_image = self.sl_raw_image.value()
-		cur_im: DicomImage = self.dataman.current_series.getImage(selected_image)
-		label_map = cur_im.label.label_map
-		self.lb_paint_bg.update_labelmap(label_map, [1])
-		self.lb_raw_image.update_labelmap(label_map)
+		current_image: DicomImage = self.dataman.current_series.getImage(selected_image)
+		label_map = current_image.label.label_map
+		#self.lb_paint_bg.update_labelmap(label_map, [1])
+		self.lb_preview_image.update_labelmap(label_map)
 
 	def update_preview_window(self):
-		self.lb_raw_image.update_window(wc=self.sb_wc.value(), ww=self.sb_ww.value())
-		self.lb_raw_image.update()
+		self.lb_preview_image.update_window(wc=self.sb_wc.value(), ww=self.sb_ww.value())
+		self.lb_preview_image.update()
 		self.update_preview_labeltext()
 
-	def update_preview_label(self):
-		labels = self.curr_image.label.label_map
-		self.lb_raw_image.update_labelmap(labels)
-		self.lb_paint_all.update_labelmap(labels, [1, 2, 3])
-		self.lb_paint_bg.update_labelmap(labels, [1])
-		self.lb_paint_cl1.update_labelmap(labels, [2])
-		self.lb_paint_cl2.update_labelmap(labels, [3])
+	def update_paint_preview_label(self):
+		label_data = self.curr_image.label.label_map
+		self.lb_preview_image.update_labelmap(label_data)
+		# Update paint preview area for each label separately
+		self.lb_paint_all.update_labelmap(label_data, [1, 2, 3])    # All labels from label_data
+		self.lb_paint_bg.update_labelmap(label_data, [1])           # Take only ID:1 from label_data
+		self.lb_paint_cl1.update_labelmap(label_data, [2])
+		self.lb_paint_cl2.update_labelmap(label_data, [3])
 
 	def update_preview(self):
-		pixel = self.curr_image.pixels
-		self.lb_raw_image.update_image(pixel)
+		self.lb_preview_image.update_image(self.curr_image.pixels)
 		self.update_preview_window()
-		self.update_preview_label()
+		self.update_paint_preview_label()
 		self.update()
 
 	def sl_preview_alpha_changed(self):
 		alpha_val = self.sl_preview_alpha.value() / 100
-		self.lb_raw_image.update_transparency(alpha_val)
-		self.lb_raw_image.update()
+		self.lb_preview_image.update_transparency(alpha_val)
+		self.lb_preview_image.update()
 
 	def clb_load_click(self):
 		path = self.le_path.text()
@@ -56,6 +78,8 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 			return None
 		self.dataman.load_series(self.le_path.text(), self.pb_main)
 		image_count = len(self.dataman.current_series)
+
+		# After loading, setup and enable relevant UI elements
 		self.dataman.last_segresult = None
 		self.dataman.last_segrange = None
 		self.sl_raw_image.setMaximum(image_count)
@@ -71,38 +95,34 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		self.lb_preview.setEnabled(True)
 		self.clb_start_segment.setEnabled(True)
 		self.pb_clear_label.setEnabled(True)
-		self.le_seg_range.setText("1-" + str(image_count))
+		self.le_seg_range.setText("1-" + str(len(self.dataman.current_series)))
 		self.update_preview()
 
 	def pb_select_folder_click(self):
-		fname = QtWidgets.QFileDialog.getExistingDirectory(self, "Select image source folder")
-		print("Selected folder:" + fname)
-		self.le_path.setText(fname)
+		folder_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select image source folder")
+		print("Selected folder: " + folder_name)
+		self.le_path.setText(folder_name)
 
-	def sl_res_image_changed(self):
-		im_nr = self.sl_res_image.value()
-		if self.dataman.last_segresult is not None and self.dataman.last_segrange[1] >= im_nr >= \
-				self.dataman.last_segrange[0]:
-			self.lb_result.update_image(self.dataman.current_series.getImage(im_nr).pixels)
+	def sl_result_image_changed(self):
+		image_nr = self.sl_res_image.value()
+		if self.dataman.last_segresult is not None and self.dataman.last_segrange[1] >= image_nr >= self.dataman.last_segrange[0]:
+			self.lb_result.update_image(self.dataman.current_series.getImage(image_nr).pixels)
 			self.lb_result.update_labelmap(
-				self.dataman.last_segresult[:, :, im_nr - self.dataman.last_segrange[0]], label_list=self.res_labelmode)
-			print("Updated to Segmentation result " + str(im_nr))
-
-	def __segment_single(self) -> np.ndarray:
-		return segment.randomwalk_single(self.curr_image, window=self.hu_window, beta_val=self.beta_val,
-		                                 data=self.dataman)
+				self.dataman.last_segresult[:, :, image_nr - self.dataman.last_segrange[0]], label_list=self.res_labelmode)
+			print("Updated to Segmentation result " + str(image_nr))
 
 	def export_memtest(self, timelist, name="time_dict.csv"):
 		print(timelist)
 		self.dataman.paste_csv(timelist, name)
 
 	def memtest_seg(self):
+		# Test function to find upper bounds for stack size on given system
 		run = 0
 		timelist = dict()
 		try:
 			while run < len(self.dataman.current_series):
 				print("***************************")
-				run_add = 1  # Add to run count to speed up benchmarking
+				run_add = 1  # Add to run count to speed up benchmarking (optional)
 				if run >= 15:
 					run_add = 2
 				if run >= 25:
@@ -114,11 +134,13 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 				gc.collect()
 				t = Timer()
 				t.start()
+				# In each loop the segmentation will be performed, with rising stack size (1, run)
 				segment.randomwalk_range(self.dataman.current_series, (1, run), window=self.hu_window,
 				                         beta_val=self.beta_val, data=self.dataman)
 				timelist[run] = t.stop()
 				print(f"Run: {run}")
 		except Exception as e:
+			# Different exceptions might occur as an MemoryError
 			print(e)
 			print(f"Exception at {run} images")
 			self.export_memtest(timelist)
@@ -137,20 +159,26 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 	def clb_start_segment_click(self):
 		try:
 			if self.rb_seg_single.isChecked():
-				pix_out_label = self.__segment_single()
+				# Single image segmentation
+				pix_out_label = segment.randomwalk_single(self.curr_image, window=self.hu_window,
+				                                          beta_val=self.beta_val, data=self.dataman)
 				self.lb_result.update_image(self.dataman.current_series.getImage(self.sl_res_image.value()).pixels)
 				self.lb_result.update_labelmap(pix_out_label)
 			elif self.rb_seg_range.isChecked():
+				# Ranged segmentation
 				timelist = list()
-				for i in range(1):  # Change to set count of segmentations for time measurements
+				for i in range(1):  # Change to set count of segmentations for statistic time measurements
 					t = Timer()
 					t.start()
 					pix_out_label = self.__segment_range()
-				# pix_out_label = self.memtest_seg()
-				timelist.append(t.stop())
+					# pix_out_label = self.memtest_seg()
+					timelist.append(t.stop())
+
+				print("Time measurements:")
 				print(timelist)
 				self.lb_result.update_image(self.dataman.current_series.getImage(self.sl_res_image.value()).pixels)
 				self.lb_result.update_labelmap(pix_out_label[:, :, self.sl_res_image.value() - self.seg_range[0]])
+
 			self.sl_res_image.setMaximum(self.seg_range[1])
 			self.sl_res_image.setMinimum(self.seg_range[0])
 			self.lb_result.update_window(wc=self.hu_window[0], ww=self.hu_window[1])
@@ -160,21 +188,22 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 			self.sb_res_image_selection.setEnabled(True)
 			self.update_result_labelmode()
 			self.update()
-			print("Segmentation starting...")
 		except Exception as e:
 			print(e)
 
-	def paint(self, e):
+	def paint_preview(self, e):
+		# handles mouse events on the preview label for painting the seeds
 		self.gb_segmentation.setEnabled(True)
 		self.sl_beta.setEnabled(True)
 		if self.dataman.current_series is None:
+			# skip painting if there is no loaded series
 			return None
-		im_dim = self.curr_image.dims
-		size_x = self.gv_raw_image.geometry().width()
-		size_y = self.gv_raw_image.geometry().height()
-		ratio_x = im_dim[1] / size_x
-		ratio_y = im_dim[0] / size_y
-		print("{} - {}".format(ratio_x, ratio_y))
+		image_dimensions = self.curr_image.dims
+		size_x = self.lb_preview_image.geometry().width()
+		size_y = self.lb_preview_image.geometry().height()
+		ratio_x = image_dimensions[1] / size_x
+		ratio_y = image_dimensions[0] / size_y
+		print("Ratio: {} - {}".format(ratio_x, ratio_y))
 		x_scaled = e.x() * ratio_x
 		y_scaled = e.y() * ratio_y
 		rect_label = QtCore.QRect(x_scaled, y_scaled, self.paint_size, self.paint_size)
@@ -184,7 +213,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 			self.curr_image.label.paint(self.current_paint_layer, rect_label)
 		elif self.preview_paint_right:
 			self.curr_image.label.unpaint(rect_label)
-		self.update_preview_label()
+		self.update_paint_preview_label()
 
 	def mousePressEvent_preview(self, e: QtGui.QMouseEvent):
 		if e.button() == QtCore.Qt.MouseButton.LeftButton:
@@ -193,7 +222,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		elif e.button() == QtCore.Qt.MouseButton.RightButton:
 			self.preview_paint_left = False
 			self.preview_paint_right = True
-		self.paint(e)
+		self.paint_preview(e)
 
 	def mouseReleaseEvent_preview(self, e: QtGui.QMouseEvent):
 		if e.button() == QtCore.Qt.MouseButton.LeftButton:
@@ -202,7 +231,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		elif e.button() == QtCore.Qt.MouseButton.RightButton:
 			self.preview_paint_left = False
 			self.preview_paint_right = True
-		self.paint(e)
+		self.paint_preview(e)
 
 	def update_result_labelmode(self):
 		if self.lb_result.array_label is not None:
@@ -214,15 +243,16 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		self.update_preview()
 
 	def pb_res_export_click(self):
-		print(self.seg_range)
+		# Exporting all segmented images to the series folder
 		export_path = self.dataman.create_export_folder(self.dataman.current_series.path)
 		print("Exporting to {}".format(export_path))
 		self.pb_main.setMinimum(self.seg_range[0])
 		self.pb_main.setMaximum(self.seg_range[1])
 		index: int = 0
-		self.dataman.export_pixmap(self.lb_raw_image.pixmap_full, name="SEEDS-WW{ww}-WC{wc}-B{beta}".format(
+		self.dataman.export_pixmap(self.lb_preview_image.pixmap_full, name="SEEDS-WW{ww}-WC{wc}-B{beta}".format(
 			ww=self.hu_window[1], wc=self.hu_window[0], beta=self.beta_val), base_path=export_path)
 		for i in range(self.seg_range[0], self.seg_range[1] + 1):
+			# Looping through all results to "simulate" viewing, saving each result-view content as seen
 			self.pb_main.setValue(i)
 			self.lb_result.update_image(self.dataman.current_series.getImage(i).pixels)
 			label_mat = self.dataman.last_segresult[:, :, index]
@@ -267,11 +297,11 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		###################
 		self.le_path = self.findChild(QtWidgets.QLineEdit, 'le_path')
 		self.pb_main = self.findChild(QtWidgets.QProgressBar, 'pb_main')
-		self.lb_raw_image = self.findChild(QtWidgets.QLabel, 'gv_raw_image')
+		self.lb_preview_image = self.findChild(QtWidgets.QLabel, 'lb_preview_image')
 		self.lb_result = self.findChild(QtWidgets.QLabel, 'lb_result')
-		self.lb_raw_image.mousePressEvent = lambda event: self.mousePressEvent_preview(event)
-		self.lb_raw_image.mouseReleaseEvent = lambda event: self.mouseReleaseEvent_preview(event)
-		self.lb_raw_image.mouseMoveEvent = lambda event: self.paint(event)
+		self.lb_preview_image.mousePressEvent = lambda event: self.mousePressEvent_preview(event)
+		self.lb_preview_image.mouseReleaseEvent = lambda event: self.mouseReleaseEvent_preview(event)
+		self.lb_preview_image.mouseMoveEvent = lambda event: self.paint_preview(event)
 		self.lb_preview = self.findChild(QtWidgets.QLabel, 'lb_preview')
 		################### Image Labels
 		self.lb_paint_bg = self.findChild(QtWidgets.QLabel, 'lb_paint_bg')
@@ -293,7 +323,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		self.sl_res_label_alpha = self.gb_result.findChild(QtWidgets.QSlider, 'sl_res_label_alpha')
 		self.sl_res_label_alpha.valueChanged.connect(self.update_result_labelmode)
 		self.sl_res_image = self.gb_result.findChild(QtWidgets.QSlider, 'sl_res_image')
-		self.sl_res_image.valueChanged.connect(self.sl_res_image_changed)
+		self.sl_res_image.valueChanged.connect(self.sl_result_image_changed)
 		self.pb_res_export = self.gb_result.findChild(QtWidgets.QPushButton, 'pb_res_export')
 		self.pb_res_export.clicked.connect(self.pb_res_export_click)
 		###################
@@ -390,7 +420,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		elif self.rb_paint_cl2.isChecked():
 			return ImageLabel.LABEL_IDS['CL2']
 		else:
-			raise ValueError("No known paint checkbox for Layer")
+			raise ValueError("No known paint checkbox for layer")
 
 	@property
 	def current_paint_color(self):
