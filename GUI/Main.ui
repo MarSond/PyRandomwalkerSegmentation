@@ -7,7 +7,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1578</width>
+    <width>1583</width>
     <height>887</height>
    </rect>
   </property>
@@ -300,7 +300,7 @@ chosen sidelengths</string>
       </rect>
      </property>
      <property name="text">
-      <string>Preview Transparency</string>
+      <string>Preview transparency</string>
      </property>
     </widget>
     <widget class="QSlider" name="sl_paint_size">
@@ -473,7 +473,7 @@ chosen sidelengths</string>
       <enum>QSlider::TicksBelow</enum>
      </property>
      <property name="tickInterval">
-      <number>5</number>
+      <number>1</number>
      </property>
     </widget>
     <widget class="QSpinBox" name="sb_wc">
@@ -721,7 +721,7 @@ chosen sidelengths</string>
       </rect>
      </property>
      <property name="text">
-      <string>Beta value</string>
+      <string>beta value</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="le_seg_range">
@@ -794,14 +794,14 @@ chosen sidelengths</string>
     <widget class="QLabel" name="label_4">
      <property name="geometry">
       <rect>
-       <x>400</x>
-       <y>40</y>
-       <width>101</width>
+       <x>430</x>
+       <y>70</y>
+       <width>81</width>
        <height>21</height>
       </rect>
      </property>
      <property name="text">
-      <string>Label transparency</string>
+      <string>Transparency</string>
      </property>
     </widget>
     <widget class="QCheckBox" name="cb_res_label_bg">
@@ -855,8 +855,8 @@ chosen sidelengths</string>
     <widget class="QSlider" name="sl_res_label_alpha">
      <property name="geometry">
       <rect>
-       <x>160</x>
-       <y>40</y>
+       <x>130</x>
+       <y>70</y>
        <width>221</width>
        <height>22</height>
       </rect>
@@ -865,7 +865,10 @@ chosen sidelengths</string>
       <number>100</number>
      </property>
      <property name="singleStep">
-      <number>10</number>
+      <number>5</number>
+     </property>
+     <property name="pageStep">
+      <number>5</number>
      </property>
      <property name="value">
       <number>80</number>
@@ -883,21 +886,21 @@ chosen sidelengths</string>
     <widget class="QLabel" name="lb545">
      <property name="geometry">
       <rect>
-       <x>460</x>
-       <y>70</y>
-       <width>31</width>
+       <x>430</x>
+       <y>40</y>
+       <width>71</width>
        <height>21</height>
       </rect>
      </property>
      <property name="text">
-      <string>Image</string>
+      <string>Image number</string>
      </property>
     </widget>
     <widget class="QSlider" name="sl_res_image">
      <property name="geometry">
       <rect>
-       <x>160</x>
-       <y>70</y>
+       <x>130</x>
+       <y>40</y>
        <width>221</width>
        <height>22</height>
       </rect>
@@ -924,7 +927,7 @@ chosen sidelengths</string>
     <widget class="QPushButton" name="pb_res_export">
      <property name="geometry">
       <rect>
-       <x>160</x>
+       <x>130</x>
        <y>100</y>
        <width>131</width>
        <height>31</height>
@@ -940,8 +943,8 @@ chosen sidelengths</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>400</x>
-       <y>70</y>
+       <x>370</x>
+       <y>40</y>
        <width>51</width>
        <height>22</height>
       </rect>
@@ -957,6 +960,34 @@ chosen sidelengths</string>
      </property>
      <property name="value">
       <number>1</number>
+     </property>
+    </widget>
+    <widget class="QSpinBox" name="sb_res_label_alpha">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>370</x>
+       <y>70</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>HU Window Center</string>
+     </property>
+     <property name="minimum">
+      <number>0</number>
+     </property>
+     <property name="maximum">
+      <number>100</number>
+     </property>
+     <property name="singleStep">
+      <number>5</number>
+     </property>
+     <property name="value">
+      <number>80</number>
      </property>
     </widget>
    </widget>
@@ -1174,6 +1205,38 @@ chosen sidelengths</string>
     <hint type="destinationlabel">
      <x>1290</x>
      <y>791</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sl_res_label_alpha</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sb_res_label_alpha</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1290</x>
+     <y>740</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1445</x>
+     <y>740</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sb_res_label_alpha</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sl_res_label_alpha</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1445</x>
+     <y>740</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1290</x>
+     <y>740</y>
     </hint>
    </hints>
   </connection>

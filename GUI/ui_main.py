@@ -186,6 +186,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 			self.dataman.last_segrange = self.seg_range
 			self.gb_result.setEnabled(True)
 			self.sb_res_image_selection.setEnabled(True)
+			self.sb_res_label_alpha.setEnabled(True)
 			self.update_result_labelmode()
 			self.update()
 		except Exception as e:
@@ -321,6 +322,7 @@ class UI_MainWindow(QtWidgets.QMainWindow):
 		self.cb_res_bg = self.gb_result.findChild(QtWidgets.QCheckBox, 'cb_res_label_bg')
 		self.cb_res_bg.stateChanged.connect(self.update_result_labelmode)
 		self.sl_res_label_alpha = self.gb_result.findChild(QtWidgets.QSlider, 'sl_res_label_alpha')
+		self.sb_res_label_alpha = self.gb_result.findChild(QtWidgets.QSpinBox, 'sb_res_label_alpha')
 		self.sl_res_label_alpha.valueChanged.connect(self.update_result_labelmode)
 		self.sl_res_image = self.gb_result.findChild(QtWidgets.QSlider, 'sl_res_image')
 		self.sl_res_image.valueChanged.connect(self.sl_result_image_changed)
